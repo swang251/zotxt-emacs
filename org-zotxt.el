@@ -205,6 +205,7 @@ FORMAT is the export format, a symbol like ‘html’ or ‘latex’ or ‘ascii
     (define-key map (kbd "C-c \" i") 'org-zotxt-insert-reference-link)
     (define-key map (kbd "C-c \" u") 'org-zotxt-update-reference-link-at-point)
     (define-key map (kbd "C-c \" a") 'org-zotxt-open-attachment)
+	(define-key map (kbd "C-c \" o") 'org-zotxt-search-open-attachment)
     map))
 
 (defun org-zotxt-choose-path (paths)
@@ -235,6 +236,55 @@ Opens with `org-open-file', see for more information about ARG."
             (org-open-file (org-zotxt-choose-path paths) arg))))
       (deferred:error it #'zotxt--deferred-handle-error)
       (if zotxt--debug-sync (deferred:sync! it)))))
+
+
+(defun org-zotxt-search-open-attachment-to-item (item)
+  "Insert link to Zotero ITEM in buffer."
+    (deferred:$
+      (zotxt--request-deferred
+       (format "%s/items" zotxt-url-base)
+       :params `(("key" . ,(plist-get item :key)) ("format" . "paths"))
+       :parser 'json-read)
+      (deferred:nextc it
+        (lambda (response)
+          (let ((paths (cdr (assq 'paths (elt (request-response-data response) 0)))))
+            (org-open-file (org-zotxt-choose-path paths) nil))))
+      (if zotxt--debug-sync (deferred:sync! it))))
+
+(defun org-zotxt-search-open-attachment-to-items (items)
+  "Insert links to Zotero ITEMS in buffer."
+  (mapc (lambda (item)
+          (org-zotxt-search-open-attachment-to-item item)
+          (insert "\n")
+          (forward-line 1))
+        items))
+
+(defun org-zotxt-search-open-attachment (&optional arg)
+"Search for an item and open its attachments
+  This is a combination of
+     org-zotxt-insert-reference-link and
+     org-zotxt-open-attachment"
+  (interactive "P")
+  (lexical-let ((mk (point-marker)))
+    (deferred:$
+      (if (equal '(4) arg)
+          (zotxt-get-selected-items-deferred)
+        (zotxt-choose-deferred (unless (equal '(16) arg) org-zotxt-default-search-method)))
+      (deferred:nextc it
+        (lambda (items)
+          (if (null items)
+              (error "No item found for search")
+            (zotxt-mapcar-deferred #'org-zotxt-get-item-link-text-deferred items))))
+      (deferred:nextc it
+        (lambda (items)
+          (with-current-buffer (marker-buffer mk)
+            (goto-char (marker-position mk))
+            (org-zotxt-search-open-attachment-to-items items))))
+      (deferred:error it
+        (lambda (err)
+          (error (error-message-string err))))
+      (if zotxt--debug-sync (deferred:sync! it)))))
+
 
 (defun org-zotxt-noter (arg)
   "Like `org-noter', but use Zotero.

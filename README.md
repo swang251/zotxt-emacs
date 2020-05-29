@@ -30,6 +30,8 @@ To update the current link text at point to reflect changed metadata from Zotero
 
 To open an attachment of the link at point, use `C-c " a` (`org-zotxt-open-attachment`)
 
+To look up a reference and open its attachment, use `C-c " o` (`org-zotxt-search-open-attachment`)
+
 ## org-noter
 
 If you use [Org-noter](https://github.com/weirdNox/org-noter) you can use the `org-zotxt-noter` command to select an item in Zotero and take notes on its attachment. Use the command in a headline, and it will either open the Org-noter interface or prompt for a Zotero search to load an attachment that can be annotated using Org-noter.
