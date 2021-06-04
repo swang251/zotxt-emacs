@@ -1,3 +1,4 @@
+;; -*- lexical-binding: t -*-
 ;;; org-zotxt.el --- Interface org-mode with Zotero via the zotxt extension
 
 ;; Copyright (C) 2010-2020 Erik Hetzner
@@ -25,8 +26,6 @@
 
 ;;; Code:
 
-(eval-when-compile
-  (require 'cl))
 (require 'org-element)
 (require 'zotxt)
 (require 'deferred)
@@ -35,21 +34,10 @@
   :citation
   "Style to use for org zotxt link texts."
   :group 'org-zotxt
-  :type '(choice (const :tag "easykey" :easykey)
-                 (const :tag "better BibTeX" :betterbibtexkey)
+  :type '(choice (const :tag "citekey" :citekey)
                  (const :tag "citation" :citation)))
 
-(defcustom org-zotxt-default-search-method nil
-  "Default method to use for searching with `org-zotxt-insert-reference-link'.
-If nil, the user is prompted to choose each time.
-
-A selected default method can be bypassed by giving a double
-prefix argument (C-u C-u) to `org-zotxt-insert-reference-link'"
-  :group 'zotxt
-  :type (append '(choice) '((const :tag "Choose each time" nil))
-                (mapcar
-                 (lambda (c) (list 'const :tag (car c) (cdr c)))
-                 zotxt-quicksearch-method-names)))
+(make-obsolete-variable 'org-zotxt-default-search-method 'zotxt-default-search-method "6.0")
 
 (defcustom org-zotxt-noter-zotero-link "ZOTERO_LINK"
   "Default property name for zotero link."
@@ -73,8 +61,7 @@ prefix argument (C-u C-u) to `org-zotxt-insert-reference-link'"
   "Return an Org mode link for ITEM as a string."
   (org-make-link-string (format "zotero://select/items/%s"
                                 (plist-get item :key))
-                        (if (or (eq org-zotxt-link-description-style :easykey)
-                                (eq org-zotxt-link-description-style :betterbibtexkey))
+                        (if (eq org-zotxt-link-description-style :citekey)
                             (concat "@" (plist-get item org-zotxt-link-description-style))
                           (plist-get item :citation))))
 
@@ -93,8 +80,8 @@ prefix argument (C-u C-u) to `org-zotxt-insert-reference-link'"
 (defun org-zotxt-update-reference-link-at-point ()
   "Update the zotero:// link at point."
   (interactive)
-  (lexical-let ((mk (point-marker))
-                (item-id (org-zotxt-extract-link-id-at-point)))
+  (let ((mk (point-marker))
+        (item-id (org-zotxt-extract-link-id-at-point)))
     (if item-id
         (deferred:$
           (deferred:next (lambda () `(:key ,item-id)))
@@ -109,7 +96,8 @@ prefix argument (C-u C-u) to `org-zotxt-insert-reference-link'"
                   (let ((ct (org-element-context)))
                     (goto-char (org-element-property :begin ct))
                     (delete-region (org-element-property :begin ct)
-                                   (org-element-property :end ct))
+                                   (- (org-element-property :end ct)
+                                      (org-element-property :post-blank ct)))
                     (org-zotxt-insert-reference-link-to-item item))))))
           (deferred:error it #'zotxt--deferred-handle-error)
           (if zotxt--debug-sync (deferred:sync! it))))))
@@ -129,10 +117,9 @@ prefix argument (C-u C-u) to `org-zotxt-insert-reference-link'"
 
 (defun org-zotxt-get-item-link-text-deferred (item)
   "Get the link text for ITEM.
-May be either an easy key or bibliography, depending on the value
+May be either an citekey or bibliography, depending on the value
 of `org-zotxt-link-description-style'."
-  (if (or (eq org-zotxt-link-description-style :easykey)
-          (eq org-zotxt-link-description-style :betterbibtexkey))
+  (if (eq org-zotxt-link-description-style :citekey)
       (zotxt-get-item-deferred item org-zotxt-link-description-style)
     (zotxt-get-item-bibliography-deferred item)))
 
@@ -144,9 +131,9 @@ will insert the currently selected item from Zotero.  If double
 prefix argument is used the search method will have to be
 selected even if `org-zotxt-default-search-method' is non-nil"
   (interactive "p")
-  (lexical-let ((mk (point-marker))
-                (use-current-selected (equal '(4) arg))
-                (force-choose-search-method (equal '(16) arg)))
+  (let ((mk (point-marker))
+        (use-current-selected (equal '(4) arg))
+        (force-choose-search-method (equal '(16) arg)))
     (deferred:$
       (zotxt-choose-deferred arg)
       (deferred:nextc it
@@ -223,8 +210,8 @@ If only path is available, return it.  If no paths are available, error."
 
 Opens with `org-open-file', see for more information about ARG."
   (interactive "P")
-  (lexical-let ((item-id (org-zotxt-extract-link-id-at-point))
-                (arg arg))
+  (let ((item-id (org-zotxt-extract-link-id-at-point))
+        (arg arg))
     (deferred:$
       (zotxt--request-deferred
        (format "%s/items" zotxt-url-base)
@@ -236,7 +223,6 @@ Opens with `org-open-file', see for more information about ARG."
             (org-open-file (org-zotxt-choose-path paths) arg))))
       (deferred:error it #'zotxt--deferred-handle-error)
       (if zotxt--debug-sync (deferred:sync! it)))))
-
 
 (defun org-zotxt-search-open-attachment-to-item (item)
   "Insert link to Zotero ITEM in buffer."

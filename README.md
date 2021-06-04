@@ -2,13 +2,13 @@
 
 ## Introduction
 
-zotxt-emacs works with [zotxt](https://github.com/egh/zotxt) to provide an Emacs integration with Zotero, allowing you to manage citation keys for pandoc markdown documents as well as org mode links to items in your Zotero collection.
+zotxt-emacs works with [zotxt](https://github.com/egh/zotxt) to provide Emacs integration with Zotero, allowing you to manage citation keys for pandoc markdown documents as well as org mode links to items in your Zotero collection.
 
 ## Installation
 
-zotxt-emacs depends on [Zotero](https://www.zotero.org/) and the [zotxt](https://github.com/egh/zotxt) Zotero addon, which must be installed first. [Better BibTeX](https://retorque.re/zotero-better-bibtex/) is required for pandoc integration.
+zotxt-emacs depends on [Zotero](https://www.zotero.org/) and the [zotxt](https://github.com/egh/zotxt) Zotero addon, which must be installed first. [Better BibTeX](https://retorque.re/zotero-better-bibtex/) is required for pandoc and citekey integration.
 
-zotxt-emacs can be installed via [MELPA](https://melpa.org/#/?q=zotxt).
+zotxt-emacs can be installed via [MELPA](https://melpa.org/#/?q=zotxt) by installing the package named `zotxt`.
 
 If installing without MELPA, please note that zotxt-emacs depends on [request.el](https://github.com/tkf/emacs-request) and [deferred.el](https://github.com/kiwanami/emacs-deferred)
 
@@ -20,7 +20,7 @@ zotxt-emacs requires Zotero and the zotxt addon >= 5.0.5.
 
 # Org mode integration
 
-To insert a citation into a [org-mode](https://orgmode.org/) document, first enable the `org-zotxt` minor mode:
+To insert a link to a reference into a [org-mode](https://orgmode.org/) document, first enable the `org-zotxt` minor mode:
 
     M-x org-zotxt-mode
 
@@ -31,6 +31,16 @@ To update the current link text at point to reflect changed metadata from Zotero
 To open an attachment of the link at point, use `C-c " a` (`org-zotxt-open-attachment`)
 
 To look up a reference and open its attachment, use `C-c " o` (`org-zotxt-search-open-attachment`)
+
+# Pandoc citekey integration
+
+To insert citation keys into a markdown document (for use with pandoc), first enable  `zotxt-citekey` minor mode:
+
+  M-x zotxt-citekey-mode
+  
+Then you can use: `C-c " k` (`zotxt-citekey-insert`) to insert a citation key. You can also use `complete-at-point` to complete the citekey. For example, if you type `@doe` `M-x completion-at-point`, you will be presented with a list of completions. In `markdown-mode` this is not bound to any key sequence, but you can of course bind it as you would like.
+
+See [zotxt](https://github.com/egh/zotxt) for instructions on using [pandoc-zotxt.lua](https://github.com/odkr/pandoc-zotxt.lua) to automatically connect to a running Zotero instance to fetch citation data when using pandoc.
 
 ## org-noter
 
