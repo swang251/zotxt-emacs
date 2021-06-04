@@ -251,11 +251,11 @@ Opens with `org-open-file', see for more information about ARG."
      org-zotxt-insert-reference-link and
      org-zotxt-open-attachment"
   (interactive "P")
-  (lexical-let ((mk (point-marker)))
+  (let ((mk (point-marker))
+       (use-current-selected (equal '(4) arg))
+       (force-choose-search-method (equal '(16) arg)))
     (deferred:$
-      (if (equal '(4) arg)
-          (zotxt-get-selected-items-deferred)
-        (zotxt-choose-deferred (unless (equal '(16) arg) org-zotxt-default-search-method)))
+      (zotxt-choose-deferred arg)
       (deferred:nextc it
         (lambda (items)
           (if (null items)
@@ -266,9 +266,7 @@ Opens with `org-open-file', see for more information about ARG."
           (with-current-buffer (marker-buffer mk)
             (goto-char (marker-position mk))
             (org-zotxt-search-open-attachment-to-items items))))
-      (deferred:error it
-        (lambda (err)
-          (error (error-message-string err))))
+      (deferred:error it #'zotxt--deferred-handle-error)
       (if zotxt--debug-sync (deferred:sync! it)))))
 
 
